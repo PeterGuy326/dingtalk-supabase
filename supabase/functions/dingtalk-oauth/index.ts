@@ -26,6 +26,7 @@ Deno.serve(async (req) => {
   try {
     if (path === "/token") return await handleToken(req);
     if (path === "/userinfo") return await handleUserinfo(req);
+    if (path === "/version") return json({ version: "ci-roundtrip-1", deployedBy: "github-actions" });
     return json({ error: "not_found" }, 404);
   } catch (e) {
     return json({ error: "server_error", message: String(e) }, 500);
