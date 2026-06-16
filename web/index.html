@@ -22,7 +22,7 @@
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
     const SUPABASE_URL = "REMOVED_SENSITIVE_VALUE";   // ✅ 已填
-    const SUPABASE_ANON_KEY = "<把anon_public_key粘这里>";              // ← 只剩这个要你粘
+    const SUPABASE_ANON_KEY = "REMOVED_SENSITIVE_VALUE";              // ← 只剩这个要你粘
     const FUNCTION_URL = `${SUPABASE_URL.replace(".supabase.co", ".functions.supabase.co")}/notes-api`;
 
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
