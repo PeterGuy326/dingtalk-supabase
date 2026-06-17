@@ -82,7 +82,14 @@ function handleUserinfo(req: Request): Response {
   let u: { unionid: string; openid?: string; nick?: string };
   try { u = JSON.parse(b64decode(token)); } catch { return json({ error: "invalid_token" }, 401); }
   if (!u.unionid) return json({ error: "invalid_token" }, 401);
-  return json({ sub: u.unionid, name: u.nick, openid: u.openid });
+  // 钉钉扫码登录不返回 email，但 Supabase 默认要求 email；用 unionId 合成稳定唯一邮箱满足它。
+  return json({
+    sub: u.unionid,
+    name: u.nick,
+    openid: u.openid,
+    email: `${u.unionid.toLowerCase()}@dingtalk.user`,
+    email_verified: true,
+  });
 }
 
 // OIDC discovery 文档：Supabase 保存时会拉 {issuer}/.well-known/openid-configuration，
