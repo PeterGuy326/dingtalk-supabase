@@ -26,6 +26,8 @@ Deno.serve(async (req) => {
     if (path === "/authorize") return handleAuthorize(url);
     if (path === "/token") return await handleToken(req);
     if (path === "/userinfo") return handleUserinfo(req);
+    if (path === "/.well-known/openid-configuration") return json(discovery());
+    if (path === "/jwks") return json({ keys: [] });
     if (path === "/version") return json({ version: "qrlogin-1", flow: "snsapi_login" });
     return json({ error: "not_found" }, 404);
   } catch (e) {
@@ -81,6 +83,25 @@ function handleUserinfo(req: Request): Response {
   try { u = JSON.parse(b64decode(token)); } catch { return json({ error: "invalid_token" }, 401); }
   if (!u.unionid) return json({ error: "invalid_token" }, 401);
   return json({ sub: u.unionid, name: u.nick, openid: u.openid });
+}
+
+// OIDC discovery 文档：Supabase 保存时会拉 {issuer}/.well-known/openid-configuration，
+// 返回指向本适配层自身的端点，保证「无论 Manual 还是 Auto 模式都不会把 URL 配错/冲掉」。
+const BASE = "https://xwzzmiomjtnaladqhikc.functions.supabase.co/dingtalk-oauth";
+function discovery() {
+  return {
+    issuer: BASE,
+    authorization_endpoint: `${BASE}/authorize`,
+    token_endpoint: `${BASE}/token`,
+    userinfo_endpoint: `${BASE}/userinfo`,
+    jwks_uri: `${BASE}/jwks`,
+    response_types_supported: ["code"],
+    grant_types_supported: ["authorization_code"],
+    subject_types_supported: ["public"],
+    scopes_supported: ["openid"],
+    token_endpoint_auth_methods_supported: ["client_secret_post"],
+    id_token_signing_alg_values_supported: ["RS256"],
+  };
 }
 
 // HMAC-SHA256(timestamp, appSecret) → base64 → urlencode
