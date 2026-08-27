@@ -3,6 +3,7 @@
 .env.local
 .env.*.local
 *.secret
+web/config.json
 
 # Supabase 本地
 supabase/.branches

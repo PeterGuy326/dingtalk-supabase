@@ -2,9 +2,6 @@
 
 应用"后半段"业务层的可运行验证：用户用**钉钉账号登录**，进来读写**自己的数据**，前端/后端/数据库三位一体。
 
-> 配套方案文档（含完整背景与对齐结论）：
-> https://example.invalid/internal-document-removed
-
 ## 目录结构
 
 ```
@@ -16,7 +13,9 @@ ding-supabase/
 │   └── functions/
 │       ├── dingtalk-oauth/index.ts              身份适配层：钉钉非标准 OAuth → 标准 OAuth
 │       └── notes-api/index.ts                   业务接口：带登录态读写本人 notes
-└── web/index.html                               前端：钉钉登录 → 读写 notes
+└── web/
+    ├── index.html                               前端：钉钉登录 → 读写 notes
+    └── config.example.json                      不含真实项目值的运行配置模板
 ```
 
 ## 🛠 后半段基建 Skill（交付给开放平台 skill 侧）
@@ -41,7 +40,7 @@ ding-supabase/
 
 ## 为什么要适配层
 
-钉钉 OAuth2.0 不是标准实现（token 用 JSON body / 字段 accessToken·expireIn / userinfo 用 header `x-acs-dingtalk-access-token`），Supabase Custom Provider 不能直连，故用一个 Edge Function 包成标准 OAuth2。详见方案文档**附录 B**。
+钉钉 OAuth2.0 不是标准实现（token 用 JSON body / 字段 accessToken·expireIn / userinfo 用 header `x-acs-dingtalk-access-token`），Supabase Custom Provider 不能直连，故用一个 Edge Function 包成标准 OAuth2。具体实现见 `supabase/functions/dingtalk-oauth`。
 
 ## 快速跑起来
 
@@ -55,7 +54,7 @@ supabase db push
 supabase functions deploy dingtalk-oauth --no-verify-jwt --project-ref <PROJECT_REF>
 supabase functions deploy notes-api --project-ref <PROJECT_REF>
 
-# 3. 配钉钉应用凭证（自建应用步骤见方案文档附录 C）
+# 3. 配钉钉应用凭证（按钉钉开放平台文档创建应用）
 supabase secrets set DINGTALK_CLIENT_ID=<x> DINGTALK_CLIENT_SECRET=<x> --project-ref <PROJECT_REF>
 
 # 4. Supabase Dashboard 建 Custom OAuth2 Provider「custom:dingtalk」：
@@ -64,9 +63,12 @@ supabase secrets set DINGTALK_CLIENT_ID=<x> DINGTALK_CLIENT_SECRET=<x> --project
 #    User Info URL     = https://<PROJECT_REF>.functions.supabase.co/dingtalk-oauth/userinfo
 #    复制表单里的 Callback URL → 登记进钉钉应用 redirect_uri 白名单
 
-# 5. 改 web/index.html 顶部 SUPABASE_URL / ANON_KEY，本地起前端
+# 5. 本地配置不入 Git；复制模板并填写当前项目的 URL 和 anon key
+cp web/config.example.json web/config.json
 cd web && python3 -m http.server 8080   # 浏览器开 http://localhost:8080
 ```
+
+GitHub Actions 部署还需配置 `SUPABASE_PROJECT_REF`、`SUPABASE_URL`、`SUPABASE_ANON_KEY` 三个仓库 Secret。Pages 工作流只在构建产物中生成 `config.json`，不会把项目配置提交进 Git。
 
 ## 验收（M0 闭环）
 
@@ -77,5 +79,5 @@ cd web && python3 -m http.server 8080   # 浏览器开 http://localhost:8080
 
 ## 待补（依赖外部）
 
-- 钉钉应用的 `clientId/secret`：自建（[附录 C](https://example.invalid/internal-document-removed)）或找大柚要
+- 钉钉应用的 `clientId/secret`：自建（钉钉开放平台文档）或找身份接入负责人要
 - redirect_uri 白名单登记：在钉钉应用后台（自建可自助）

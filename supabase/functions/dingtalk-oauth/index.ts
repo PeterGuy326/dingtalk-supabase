@@ -94,7 +94,9 @@ function handleUserinfo(req: Request): Response {
 
 // OIDC discovery 文档：Supabase 保存时会拉 {issuer}/.well-known/openid-configuration，
 // 返回指向本适配层自身的端点，保证「无论 Manual 还是 Auto 模式都不会把 URL 配错/冲掉」。
-const BASE = "https://REMOVED_SENSITIVE_VALUE.functions.supabase.co/dingtalk-oauth";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+if (!SUPABASE_URL) throw new Error("SUPABASE_URL is required");
+const BASE = `${SUPABASE_URL.replace(".supabase.co", ".functions.supabase.co")}/dingtalk-oauth`;
 function discovery() {
   return {
     issuer: BASE,

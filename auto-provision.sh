@@ -56,27 +56,29 @@ supabase functions deploy notes-api --project-ref "$REF"
 echo "▶ 5/8 配钉钉密钥（secrets）"
 supabase secrets set DINGTALK_CLIENT_ID="$DINGTALK_CLIENT_ID" DINGTALK_CLIENT_SECRET="$DINGTALK_CLIENT_SECRET" --project-ref "$REF"
 
-echo "▶ 6/8 抓 anon key 填前端 + 配登录回跳白名单（API）"
+echo "▶ 6/8 抓 anon key 生成本地运行配置 + 配登录回跳白名单（API）"
 ANON=$(curl -s "${AUTH[@]}" "$API/projects/$REF/api-keys?reveal=true" | python3 -c "import sys,json;print(next(k['api_key'] for k in json.load(sys.stdin) if k['name']=='anon'))")
 python3 - "$REF" "$ANON" <<'PY'
-import sys
+import json, sys
 ref,anon=sys.argv[1],sys.argv[2]
-s=open("web/index.html").read()
-import re
-s=re.sub(r'const SUPABASE_URL = "[^"]*"', f'const SUPABASE_URL = "https://{ref}.supabase.co"', s)
-s=re.sub(r'const SUPABASE_ANON_KEY = "[^"]*"', f'const SUPABASE_ANON_KEY = "{anon}"', s)
-open("web/index.html","w").write(s)
+with open("web/config.json", "w") as output:
+    json.dump({"supabaseUrl": f"https://{ref}.supabase.co", "supabaseAnonKey": anon}, output)
 PY
-PAGES_URL="https://$(gh api user -q .login 2>/dev/null | tr 'A-Z' 'a-z').github.io/$APP_NAME"
+OWNER=$(gh api user -q .login)
+PAGES_URL="https://$(printf '%s' "$OWNER" | tr 'A-Z' 'a-z').github.io/$APP_NAME"
 curl -s -X PATCH "${AUTH[@]}" "$API/projects/$REF/config/auth" \
   -d "{\"site_url\":\"$PAGES_URL\",\"uri_allow_list\":\"http://localhost:8080/**,$PAGES_URL/**\"}" >/dev/null
-echo "   anon key 已填，回跳白名单已配"
+echo "   本地 config.json 已生成（被 gitignore 忽略），回跳白名单已配"
 
 echo "▶ 7/8 建 GitHub 仓库 + push + 配 CI 密钥"
 git add -A && git commit -q -m "provision $APP_NAME" || true
-gh repo create "$APP_NAME" --public --source=. --remote=origin --push 2>/dev/null || git push -u origin main
-gh secret set SUPABASE_ACCESS_TOKEN --body "$SUPABASE_ACCESS_TOKEN"
-gh secret set SUPABASE_DB_PASSWORD --body "$DB_PASS"
+gh repo view "$OWNER/$APP_NAME" >/dev/null 2>&1 || gh repo create "$APP_NAME" --public --source=. --remote=origin
+gh secret set SUPABASE_ACCESS_TOKEN --repo "$OWNER/$APP_NAME" --body "$SUPABASE_ACCESS_TOKEN"
+gh secret set SUPABASE_DB_PASSWORD --repo "$OWNER/$APP_NAME" --body "$DB_PASS"
+gh secret set SUPABASE_PROJECT_REF --repo "$OWNER/$APP_NAME" --body "$REF"
+printf 'https://%s.supabase.co' "$REF" | gh secret set SUPABASE_URL --repo "$OWNER/$APP_NAME"
+printf '%s' "$ANON" | gh secret set SUPABASE_ANON_KEY --repo "$OWNER/$APP_NAME"
+git push -u origin main
 
 echo "▶ 8/8 完成。GitHub Actions 会在每次 push 时自动部署。"
 echo ""

@@ -1,4 +1,4 @@
-project_id = "REMOVED_SENSITIVE_VALUE"
+project_id = "dingtalk-supabase"
 
 [functions.dingtalk-oauth]
 # 身份适配层：Supabase 鉴权服务器调它换 token / 取用户信息，不带用户 JWT，故关闭校验

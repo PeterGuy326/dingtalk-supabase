@@ -17,12 +17,13 @@
 <body>
   <h2>钉钉登录 + Supabase 最小闭环</h2>
 
-  <!-- ① 改成你的 Supabase 项目配置 -->
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-    const SUPABASE_URL = "REMOVED_SENSITIVE_VALUE";   // ✅ 已填
-    const SUPABASE_ANON_KEY = "REMOVED_SENSITIVE_VALUE";              // ← 只剩这个要你粘
+    const configResponse = await fetch("./config.json", { cache: "no-store" });
+    if (!configResponse.ok) throw new Error("Missing web/config.json runtime configuration");
+    const { supabaseUrl: SUPABASE_URL, supabaseAnonKey: SUPABASE_ANON_KEY } = await configResponse.json();
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) throw new Error("Incomplete Supabase runtime configuration");
     const FUNCTION_URL = `${SUPABASE_URL.replace(".supabase.co", ".functions.supabase.co")}/notes-api`;
 
     const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

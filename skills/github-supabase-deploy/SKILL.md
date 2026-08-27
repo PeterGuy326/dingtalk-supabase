@@ -6,7 +6,7 @@ metadata:
   author: 胡奕舟
   category: infra
   related_skills: []
-  handoff_to: 勤泽（开放平台 skill 侧）
+  handoff_to: 身份接入负责人
 ---
 
 # GitHub CLI + Supabase CLI 部署 Skill
@@ -45,7 +45,7 @@ GitHub Pages ◄──同一次 push── web/ 静态前端
 
 ④ 停 — 钉钉开发者后台 4 步无开放 API，agent 必须停下来交人工：
    建应用拿 AppKey/Secret · 配回调白名单 · 开 Contact.User.Read 并发版 · 建 Custom Provider
-   （把第 ③ 步打印的「回调地址/函数地址」交给前半段/勤泽侧去填）
+   （把第 ③ 步打印的「回调地址/函数地址」交给身份接入负责人去填）
 ```
 
 判断标准：第 ③ 步脚本退出码为 0 且打印出三件交接物 = 后半段闭环完成。剩下只欠钉钉人工 4 步。
@@ -53,7 +53,7 @@ GitHub Pages ◄──同一次 push── web/ 静态前端
 ## 适用边界
 
 - **负责**：Supabase 项目生命周期、DB migration、Edge Functions 部署、GitHub 仓库与 CI/CD、前端 Pages 托管。
-- **不负责（前半段，勤泽/玉澜侧）**：钉钉应用建号、OIDC/OAuth 身份链路、API 权限审批、redirect_uri 白名单登记。本 skill 假设"前面已经通了"，只把后端基建脚手架交付到位。
+- **不负责（前半段，身份接入负责人）**：钉钉应用建号、OIDC/OAuth 身份链路、API 权限审批、redirect_uri 白名单登记。本 skill 假设"前面已经通了"，只把后端基建脚手架交付到位。
 
 ## 工具权限
 
@@ -134,11 +134,16 @@ supabase secrets set KEY1=v1 KEY2=v2 --project-ref "$REF"
 ANON=$(curl -s "${AUTH[@]}" "$API/projects/$REF/api-keys?reveal=true" \
   | python3 -c "import sys,json;print(next(k['api_key'] for k in json.load(sys.stdin) if k['name']=='anon'))")
 
-# 7) 建 GitHub 仓库 + push + 配 CI 密钥
+# 7) 建 GitHub 仓库 + 配 CI/Pages 运行值，再 push
 git add -A && git commit -m "provision" || true
-gh repo create my-app --public --source=. --remote=origin --push
-gh secret set SUPABASE_ACCESS_TOKEN --body "$SUPABASE_ACCESS_TOKEN"
-gh secret set SUPABASE_DB_PASSWORD --body "$DB_PASS"
+OWNER=$(gh api user -q .login)
+gh repo create my-app --public --source=. --remote=origin
+gh secret set SUPABASE_ACCESS_TOKEN --repo "$OWNER/my-app" --body "$SUPABASE_ACCESS_TOKEN"
+gh secret set SUPABASE_DB_PASSWORD --repo "$OWNER/my-app" --body "$DB_PASS"
+gh secret set SUPABASE_PROJECT_REF --repo "$OWNER/my-app" --body "$REF"
+printf 'https://%s.supabase.co' "$REF" | gh secret set SUPABASE_URL --repo "$OWNER/my-app"
+printf '%s' "$ANON" | gh secret set SUPABASE_ANON_KEY --repo "$OWNER/my-app"
+git push -u origin main
 # 之后每次 push main → Actions 自动部署
 ```
 
@@ -147,10 +152,9 @@ gh secret set SUPABASE_DB_PASSWORD --body "$DB_PASS"
 仓库 `.github/workflows/` 放两条腿，push main 即触发：
 
 - `deploy.yml`：`supabase/setup-cli@v1` → `link` → `db push` → `functions deploy`。
-  需在 GitHub 仓库 Settings → Secrets 配 **`SUPABASE_ACCESS_TOKEN`** + **`SUPABASE_DB_PASSWORD`**（上面第 7 步已自动配）。
-  注意把 workflow 里的 `env: PROJECT_REF` 改成你的 ref。
+  需在 GitHub 仓库 Settings → Secrets 配 **`SUPABASE_ACCESS_TOKEN`**、**`SUPABASE_DB_PASSWORD`**、**`SUPABASE_PROJECT_REF`**（上面第 7 步已自动配）。
 - `pages.yml`：把 `web/` 静态前端发布到 GitHub Pages，拿到公网地址 `https://<user>.github.io/<repo>`。
-  需在仓库 Settings → Pages 把 Source 设为 "GitHub Actions"。
+  需配置 **`SUPABASE_URL`** 与 **`SUPABASE_ANON_KEY`** 仓库 Secret，并在 Settings → Pages 把 Source 设为 "GitHub Actions"。工作流生成的 `web/config.json` 仅进入部署产物。
 
 两条 workflow 模板见本仓库 `.github/workflows/`，可直接拷贝改 ref。
 
@@ -162,7 +166,7 @@ gh secret set SUPABASE_DB_PASSWORD --body "$DB_PASS"
 - [ ] `gh repo view` 能看到仓库；Actions 页有一次绿色 run
 - [ ] push 一次空提交 → Actions 自动重新部署
 
-## 交接给前半段（勤泽/玉澜）的接口
+## 交接给前半段（身份接入负责人）的接口
 
 本 skill 跑完后，把这几个值交给身份链路侧即可对接钉钉 OIDC：
 

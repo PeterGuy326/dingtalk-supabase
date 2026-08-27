@@ -24,6 +24,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      - name: Render runtime configuration
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          test -n "$SUPABASE_URL"
+          test -n "$SUPABASE_ANON_KEY"
+          jq --null-input \
+            --arg supabaseUrl "$SUPABASE_URL" \
+            --arg supabaseAnonKey "$SUPABASE_ANON_KEY" \
+            '{supabaseUrl: $supabaseUrl, supabaseAnonKey: $supabaseAnonKey}' \
+            > web/config.json
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web

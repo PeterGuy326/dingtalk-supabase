@@ -3,9 +3,10 @@ name: Deploy to Supabase
 # 本地 push 到 main → GitHub Actions 自动把 migration + Edge Functions 部署到 Supabase
 # 这就是"本地→GitHub→Supabase 自动部署"三位一体里 GitHub 那条腿。
 #
-# 启用前提（在 GitHub 仓库 Settings → Secrets 配 2 个）：
+# 启用前提（在 GitHub 仓库 Settings → Secrets 配 3 个）：
 #   SUPABASE_ACCESS_TOKEN   — Supabase 个人访问令牌 sbp_...
 #   SUPABASE_DB_PASSWORD    — 数据库密码
+#   SUPABASE_PROJECT_REF    — 目标项目 ref
 
 on:
   push:
@@ -13,7 +14,7 @@ on:
   workflow_dispatch:
 
 env:
-  PROJECT_REF: REMOVED_SENSITIVE_VALUE
+  PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
 
 jobs:
   deploy:

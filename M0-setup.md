@@ -1,7 +1,7 @@
 # M0 预研 — 命令清单（可直接照做）
 
 > 目标：建 Supabase project + 连 GitHub + 跑通 1 个 migration + 1 个 Edge Function。
-> A.1–A.3 不依赖钉钉/大柚，现在就能全部跑完。
+> A.1–A.3 不依赖钉钉/身份接入负责人，现在就能全部跑完。
 
 ## 0. 前置（一次性）
 
@@ -61,7 +61,7 @@ supabase db push                        # 推到远端（或连 GitHub 后由 CI
 
 ```bash
 supabase functions deploy dingtalk-oauth --no-verify-jwt --project-ref <PROJECT_REF>
-supabase secrets set DINGTALK_CLIENT_ID=<待大柚给> DINGTALK_CLIENT_SECRET=<待大柚给> --project-ref <PROJECT_REF>
+supabase secrets set DINGTALK_CLIENT_ID=<待身份接入负责人给> DINGTALK_CLIENT_SECRET=<待身份接入负责人给> --project-ref <PROJECT_REF>
 
 # 冒烟测试（userinfo 路由，401 属正常——说明函数活着、鉴权生效）
 curl -i https://<PROJECT_REF>.functions.supabase.co/dingtalk-oauth/userinfo
@@ -73,7 +73,7 @@ curl -i https://<PROJECT_REF>.functions.supabase.co/dingtalk-oauth/userinfo
 - [ ] Edge Function 部署成功，curl `/userinfo` 返回 401（结构正确）
 - [ ] push 到 GitHub 触发 CI 自动部署（连 GitHub 后）
 
-## 待大柚回的两格（不挡 M0）
+## 待身份接入负责人回的两格（不挡 M0）
 
 1. 用哪个钉钉应用的 `clientId / clientSecret` → 填进第 4 步 secrets
 2. 把 Supabase Callback URL 登记进该钉钉应用的 redirect_uri 白名单
